@@ -3,7 +3,7 @@ An indexer that indexes the attestations of validators of the last 5 epochs
 
 ## You don't have to run it locall with the help of [shuttle.rs](https://www.shuttle.rs/)
 * I have deployed this code on the internet using shuttle on https://ethereumconsensusindexer.shuttleapp.rs
-* If you want to query it you can import this [pastebin](https://pastebin.com/TC9T5kHv) link into PostMan and run the queries in Hosted App
+* If you want to query it you can import this [pastebin](https://pastebin.com/06bjrzet) link into PostMan and run the queries in Hosted App
 * It takes about 6 minutes to run the indexer and the request for that is provided
 * As I have already ran the indexer, you can run `get unique data` so that you can know what epoch, slots and unique validators the DB has currently and then you can make queries based on that
 
@@ -13,4 +13,4 @@ An indexer that indexes the attestations of validators of the last 5 epochs
 * Run the command `chmod +x script.bash`
 * Then run `./script.bash` (before running the script make sure that no other PostgreSQL server is running)
 * And then hopefully you will have a running server
-* You can import [pastebin](https://pastebin.com/TC9T5kHv) in postman and run the queries in Local
+* You can import [pastebin](https://pastebin.com/06bjrzet) in postman and run the queries in Local
