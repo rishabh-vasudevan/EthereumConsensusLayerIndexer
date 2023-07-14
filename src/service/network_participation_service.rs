@@ -2,8 +2,6 @@ use axum::Extension;
 use sqlx::PgPool;
 use std::error::Error;
 
-use crate::utils::{constants, util_functions};
-
 #[derive(sqlx::FromRow)]
 struct Count {
     count: i64,

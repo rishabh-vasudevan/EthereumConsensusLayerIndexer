@@ -1,5 +1,4 @@
 use axum::Extension;
-use serde_json::Value;
 use sqlx::PgPool;
 use std::error::Error;
 use std::{collections::HashMap, time::Instant};
