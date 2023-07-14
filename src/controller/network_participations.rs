@@ -40,11 +40,14 @@ pub async fn find_network_participation_of_a_validator(
 pub async fn find_network_participation_of_a_committee(
     Path((committee_id, epoch_id)): Path<(String, String)>,
     pool: Extension<PgPool>,
-) -> String {
+) -> Response {
     println!("request recieved to return network participation");
     match calculate_network_participation_of_a_committee(epoch_id, committee_id, &pool).await {
-        Ok(val) => val,
-        Err(_) => "Testing error".into(),
+        Ok(val) => Json(ParticipationResponse { participation: val }).into_response(),
+        Err(_) => Json(ParticipationResponse {
+            participation: format!("error in running api"),
+        })
+        .into_response(),
     }
 }
 
