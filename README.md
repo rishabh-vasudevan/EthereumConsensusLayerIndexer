@@ -11,6 +11,6 @@ An indexer that indexes the attestations of validators of the last 5 epochs
 * You must have docker and rust installed
 * Clone this repo
 * Run the command `chmod +x script.bash`
-* Then run `./script.bash`
+* Then run `./script.bash` (before running the script make sure that no other PostgreSQL server is running)
 * And then hopefully you will have a running server
 * You can import [pastebin](https://pastebin.com/TC9T5kHv) in postman and run the queries in Local
