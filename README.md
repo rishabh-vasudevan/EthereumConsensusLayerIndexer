@@ -14,3 +14,6 @@ An indexer that indexes the attestations of validators of the last 5 epochs
 * Then run `./script.bash` (before running the script make sure that no other PostgreSQL server is running)
 * And then hopefully you will have a running server
 * You can import [pastebin](https://pastebin.com/06bjrzet) in postman and run the queries in Local
+
+## To Run the Unit Tests
+* You can run the `cargo test` command
