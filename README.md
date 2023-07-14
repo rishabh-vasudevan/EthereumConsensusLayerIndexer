@@ -1,4 +1,4 @@
-# EthereumConsensusLayerIndexer
+# Ethereum Consensus Layer Indexer
 An indexer that indexes the attestations of validators of the last 5 epochs
 
 ## You don't have to run it locall with the help of [shuttle.rs](https://www.shuttle.rs/)
