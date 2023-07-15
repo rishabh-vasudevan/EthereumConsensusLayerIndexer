@@ -24,7 +24,7 @@ pub async fn get_request_call_with_param(
     parameters: Option<HashMap<String, String>>,
 ) -> Result<String, Box<dyn Error>> {
     println!(
-        "recieved util function call to make an api call to {:?} with params {:?}",
+        "received util function call to make an api call to {:?} with params {:?}",
         url, parameters
     );
     match parameters {
@@ -46,7 +46,7 @@ pub async fn get_request_call_with_param(
 }
 
 pub async fn find_current_epoch() -> i64 {
-    println!("find_current_epoch :: request recieved to find the current epoch number");
+    println!("find_current_epoch :: request received to find the current epoch number");
     let url = constants::QUICKNODE_BASE_URL.to_string() + "/eth/v1/beacon/headers/head";
     let res = get_request_call_with_param(url, None).await;
     match res {
@@ -61,19 +61,19 @@ pub async fn find_current_epoch() -> i64 {
                 Err(_) => panic!("find_current_epoch :: there was an error in parsing the json"),
             }
         }
-        Err(_) => panic!("find_current_epcoh :: There was some error in find_current_epoch"),
+        Err(_) => panic!("find_current_epoch :: There was some error in find_current_epoch"),
     }
 }
 
-pub async fn find_commitee_and_validators_for_epoch(
+pub async fn find_committee_and_validators_for_epoch(
     epoch: i64,
 ) -> HashMap<(i64, String), Vec<String>> {
-    println!("find_commitee_and_validators_for_slot :: request recieved to find validators in each commitee for a slot");
+    println!("find_committee_and_validators_for_slot :: request received to find validators in each committee for a slot");
     let url = constants::QUICKNODE_BASE_URL.to_string() + "/eth/v1/beacon/states/head/committees";
     let mut params: HashMap<String, String> = HashMap::new();
     params.insert("epoch".to_string(), epoch.to_string());
     let res = get_request_call_with_param(url, Some(params)).await;
-    let mut commitee_validators_mapping: HashMap<(i64, String), Vec<String>> = HashMap::new();
+    let mut committee_validators_mapping: HashMap<(i64, String), Vec<String>> = HashMap::new();
 
     match res {
         Ok(val) => {
@@ -92,30 +92,31 @@ pub async fn find_commitee_and_validators_for_epoch(
                                 .iter()
                                 .map(|val| val.as_str().unwrap().to_string())
                                 .collect();
-                            commitee_validators_mapping.insert((slot, index), validators);
+                            committee_validators_mapping.insert((slot, index), validators);
                         }
                     }
                 }
                 None => {
-                    panic!("find_committe_and_validator_for_slot :: none recieved in data array");
+                    panic!("find_committee_and_validator_for_slot :: none received in data array");
                 }
             }
         }
         Err(_) => {
-            panic!("find_committe_and_validator_for_slot :: error in parsing the json");
+            panic!("find_committee_and_validator_for_slot :: error in parsing the json");
         }
     }
-    commitee_validators_mapping
+    committee_validators_mapping
 }
 
-pub async fn find_commitee_attestations_bits_mapping(
+pub async fn find_committee_attestations_bits_mapping(
+    epoch: i64, 
     slot: i64,
-) -> (bool, Option<HashMap<String, Vec<bool>>>) {
-    println!("find_commitee_attestations_bits_mapping :: request recieved to find attestations per block");
+) -> (bool, Option<HashMap<(i64, String), Vec<bool>>>) {
+    println!("find_committee_attestations_bits_mapping :: request received to find attestations per block");
     let url = constants::QUICKNODE_BASE_URL.to_string()
         + format!("eth/v1/beacon/blocks/{}/attestations", (slot + 1)).as_str();
     let res = get_request_call_with_param(url, None).await;
-    let mut commitee_attestations_bits_mapping: HashMap<String, Vec<bool>> = HashMap::new();
+    let mut committee_attestations_bits_mapping: HashMap<(i64, String), Vec<bool>> = HashMap::new();
 
     match res {
         Ok(val) => {
@@ -126,32 +127,27 @@ pub async fn find_commitee_attestations_bits_mapping(
                         let aggregation_array =
                             hex_to_boolean_array(data["aggregation_bits"].as_str().unwrap());
                         let committee_index = data["data"]["index"].as_str().unwrap();
-                        if data["data"]["slot"]
-                            .as_str()
-                            .unwrap()
-                            .parse::<i64>()
-                            .unwrap()
-                            == slot
-                        {
-                            commitee_attestations_bits_mapping
-                                .insert(committee_index.to_string(), aggregation_array);
+                        let committee_slot = data["data"]["slot"].as_str().unwrap().parse::<i64>().unwrap();
+                        if committee_slot >= (epoch * constants::NUMBER_OF_SLOTS_PER_EPOCH){
+                        committee_attestations_bits_mapping
+                            .insert((committee_slot, committee_index.to_string()), aggregation_array);
                         }
                     }
                 }
                 None => {
                     println!(
-                        "find_commitee_attestations_bits_mapping :: unable to parse json response"
+                        "find_committee_attestations_bits_mapping :: unable to parse json response"
                     );
                     return (false, None);
                 }
             }
         }
         Err(_) => {
-            panic!("find_commitee_attestations_bits_mapping :: some error in response");
+            panic!("find_committee_attestations_bits_mapping :: some error in response");
         }
     }
 
-    (true, Some(commitee_attestations_bits_mapping))
+    (true, Some(committee_attestations_bits_mapping))
 }
 
 fn little_to_big_endian(hex: &str) -> String {
@@ -193,17 +189,16 @@ fn hex_to_boolean_array(hex: &str) -> Vec<bool> {
 
 pub async fn write_attestation_data_to_postgres(
     committee_validators_mapping: &HashMap<(i64, String), Vec<String>>,
-    commmittee_attestation_bits_mapping: HashMap<String, Vec<bool>>,
-    slot: i64,
+    committee_attestation_bits_mapping: HashMap<(i64, String), Vec<bool>>,
     epoch: i64,
     pool: &Extension<PgPool>,
 ) -> () {
     let mut insert_many_vector: Vec<(i64, i64, i64, String, bool)> = Vec::new();
-    commmittee_attestation_bits_mapping
+    committee_attestation_bits_mapping
         .iter()
-        .for_each(|(committee, attestation_bool_arr)| {
+        .for_each(|((committee_slot, committee), attestation_bool_arr)| {
             let validators_in_committee = committee_validators_mapping
-                .get(&(slot, committee.clone()))
+                .get(&(committee_slot.to_owned(), committee.clone()))
                 .unwrap();
 
             attestation_bool_arr
@@ -213,7 +208,7 @@ pub async fn write_attestation_data_to_postgres(
                     if let Some(validator) = validators_in_committee.get(validator_index) {
                         insert_many_vector.push((
                             epoch,
-                            slot,
+                            committee_slot.to_owned(),
                             committee.parse::<i64>().unwrap(),
                             validator.clone(),
                             attested.clone(),
@@ -290,21 +285,21 @@ mod tests {
         let epoch = 214776 as i64;
         let slot = 6872840 as i64;
         let committee_number = "49";
-        let committee_validator_list = find_commitee_and_validators_for_epoch(epoch).await;
-        let attestation_bits_for_slot = find_commitee_attestations_bits_mapping(slot).await;
+        let committee_validator_list = find_committee_and_validators_for_epoch(epoch).await;
+        let attestation_bits_for_slot = find_committee_attestations_bits_mapping(epoch, slot).await;
 
         let validators_in_committee = committee_validator_list
             .get(&(slot, committee_number.into()))
             .unwrap();
-        let attestations_in_commitee_length = match attestation_bits_for_slot.1 {
-            Some(val) => val.get(committee_number).unwrap().len(),
+        let attestations_in_committee_length = match attestation_bits_for_slot.1 {
+            Some(val) => val.get(&(slot, committee_number.into())).unwrap().len(),
             None => {
                 panic!("test failed got None value");
             }
         };
         assert_eq!(
             validators_in_committee.len(),
-            attestations_in_commitee_length
+            attestations_in_committee_length
         );
     }
 

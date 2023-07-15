@@ -19,21 +19,22 @@ pub async fn run_indexer_impl(pool: Extension<PgPool>) -> Result<(), Box<dyn Err
 
     for epoch in (current_epoch - constants::NUMBER_OF_EPOCHS)..current_epoch {
         let committee_validators_mapping: HashMap<(i64, String), Vec<String>> =
-            util_functions::find_commitee_and_validators_for_epoch(epoch).await;
+            util_functions::find_committee_and_validators_for_epoch(epoch).await;
 
         for slot in ((epoch) * constants::NUMBER_OF_SLOTS_PER_EPOCH)
             ..((epoch + 1) * constants::NUMBER_OF_SLOTS_PER_EPOCH)
         {
-            let commmittee_attestation_bits_mapping: (bool, Option<HashMap<String, Vec<bool>>>) =
-                util_functions::find_commitee_attestations_bits_mapping(slot).await;
+            let committee_attestation_bits_mapping: (
+                bool,
+                Option<HashMap<(i64, String), Vec<bool>>>,
+            ) = util_functions::find_committee_attestations_bits_mapping(epoch, slot).await;
 
-            if commmittee_attestation_bits_mapping.0 {
-                match commmittee_attestation_bits_mapping.1 {
+            if committee_attestation_bits_mapping.0 {
+                match committee_attestation_bits_mapping.1 {
                     Some(attestation_array) => {
                         util_functions::write_attestation_data_to_postgres(
                             &committee_validators_mapping,
                             attestation_array,
-                            slot,
                             epoch,
                             &pool,
                         )
