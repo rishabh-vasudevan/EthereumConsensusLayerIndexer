@@ -1,6 +1,7 @@
 use axum::Extension;
 use sqlx::PgPool;
 use std::error::Error;
+use std::hash::Hash;
 use std::{collections::HashMap, time::Instant};
 
 use crate::controller;
@@ -20,7 +21,8 @@ pub async fn run_indexer_impl(pool: Extension<PgPool>) -> Result<(), Box<dyn Err
     for epoch in (current_epoch - constants::NUMBER_OF_EPOCHS)..current_epoch {
         let committee_validators_mapping: HashMap<(i64, String), Vec<String>> =
             util_functions::find_committee_and_validators_for_epoch(epoch).await;
-
+        let mut committee_attestation_bits_for_epoch_mapping: HashMap<(i64, String), Vec<bool>> =
+            HashMap::new();
         for slot in ((epoch) * constants::NUMBER_OF_SLOTS_PER_EPOCH)
             ..((epoch + 1) * constants::NUMBER_OF_SLOTS_PER_EPOCH)
         {
@@ -31,22 +33,27 @@ pub async fn run_indexer_impl(pool: Extension<PgPool>) -> Result<(), Box<dyn Err
 
             if committee_attestation_bits_mapping.0 {
                 match committee_attestation_bits_mapping.1 {
-                    Some(attestation_array) => {
-                        util_functions::write_attestation_data_to_postgres(
-                            &committee_validators_mapping,
-                            attestation_array,
-                            epoch,
-                            &pool,
-                        )
-                        .await;
-                    }
-                    None => (),
+                    Some(val) => {
+                        committee_attestation_bits_for_epoch_mapping.extend(val);
+                    },
+                    None => ()
                 }
             } else {
                 continue;
             }
         }
+
+        if committee_attestation_bits_for_epoch_mapping.len() > 0 {
+                    util_functions::write_attestation_data_to_postgres(
+                        &committee_validators_mapping,
+                        committee_attestation_bits_for_epoch_mapping,
+                        epoch,
+                        &pool,
+                    )
+                    .await;
+                }
     }
+
     println!("run_indexer_impl :: it took {:?} ", start_time.elapsed());
 
     Ok(())

@@ -109,7 +109,7 @@ pub async fn find_committee_and_validators_for_epoch(
 }
 
 pub async fn find_committee_attestations_bits_mapping(
-    epoch: i64, 
+    epoch: i64,
     slot: i64,
 ) -> (bool, Option<HashMap<(i64, String), Vec<bool>>>) {
     println!("find_committee_attestations_bits_mapping :: request received to find attestations per block");
@@ -127,10 +127,16 @@ pub async fn find_committee_attestations_bits_mapping(
                         let aggregation_array =
                             hex_to_boolean_array(data["aggregation_bits"].as_str().unwrap());
                         let committee_index = data["data"]["index"].as_str().unwrap();
-                        let committee_slot = data["data"]["slot"].as_str().unwrap().parse::<i64>().unwrap();
-                        if committee_slot >= (epoch * constants::NUMBER_OF_SLOTS_PER_EPOCH){
-                        committee_attestations_bits_mapping
-                            .insert((committee_slot, committee_index.to_string()), aggregation_array);
+                        let committee_slot = data["data"]["slot"]
+                            .as_str()
+                            .unwrap()
+                            .parse::<i64>()
+                            .unwrap();
+                        if committee_slot >= (epoch * constants::NUMBER_OF_SLOTS_PER_EPOCH) {
+                            committee_attestations_bits_mapping.insert(
+                                (committee_slot, committee_index.to_string()),
+                                aggregation_array,
+                            );
                         }
                     }
                 }
@@ -189,12 +195,12 @@ fn hex_to_boolean_array(hex: &str) -> Vec<bool> {
 
 pub async fn write_attestation_data_to_postgres(
     committee_validators_mapping: &HashMap<(i64, String), Vec<String>>,
-    committee_attestation_bits_mapping: HashMap<(i64, String), Vec<bool>>,
+    committee_attestation_bits_for_epoch_mapping: HashMap<(i64, String), Vec<bool>>,
     epoch: i64,
     pool: &Extension<PgPool>,
 ) -> () {
     let mut insert_many_vector: Vec<(i64, i64, i64, String, bool)> = Vec::new();
-    committee_attestation_bits_mapping
+    committee_attestation_bits_for_epoch_mapping
         .iter()
         .for_each(|((committee_slot, committee), attestation_bool_arr)| {
             let validators_in_committee = committee_validators_mapping
@@ -291,7 +297,7 @@ mod tests {
         let validators_in_committee = committee_validator_list
             .get(&(slot, committee_number.into()))
             .unwrap();
-        let attestations_in_committee_length = match attestation_bits_for_slot.1 {
+        let attestations_in_commitee_length = match attestation_bits_for_slot.1 {
             Some(val) => val.get(&(slot, committee_number.into())).unwrap().len(),
             None => {
                 panic!("test failed got None value");
@@ -299,7 +305,7 @@ mod tests {
         };
         assert_eq!(
             validators_in_committee.len(),
-            attestations_in_committee_length
+            attestations_in_commitee_length
         );
     }
 
