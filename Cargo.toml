@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 axum = "0.6.18"
+futures = "0.3.28"
 num = "0.4.1"
 num-bigint = "0.4.3"
 rayon = "1.7.0"
