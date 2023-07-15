@@ -15,5 +15,7 @@ An indexer that indexes the attestations of validators of the last 5 epochs
 * And then hopefully you will have a running server
 * You can import [pastebin](https://pastebin.com/06bjrzet) in postman and run the queries in Local
 
+  *__note__: I have added a docker-compose to run postgres because I am using the PostgresSQL URL with the user and password inside the code*
+
 ## To Run the Unit Tests
 * You can run the `cargo test` command
