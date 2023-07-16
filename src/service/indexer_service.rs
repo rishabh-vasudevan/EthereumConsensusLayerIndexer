@@ -1,8 +1,8 @@
 use axum::Extension;
 use futures;
 use sqlx::PgPool;
-use std::future::Future;
 use std::error::Error;
+use std::future::Future;
 use std::thread::sleep;
 use std::time::Duration;
 use std::{collections::HashMap, time::Instant};
@@ -40,37 +40,38 @@ pub async fn run_indexer_impl(pool: Extension<PgPool>) -> Result<(), Box<dyn Err
         let mut committee_attestation_bits_for_epoch_mapping: HashMap<(i64, String), Vec<bool>> =
             HashMap::new();
 
-        let range = ((epoch as u64) * constants::NUMBER_OF_SLOTS_PER_EPOCH as u64)
+        let slot_range_1 = ((epoch as u64) * constants::NUMBER_OF_SLOTS_PER_EPOCH as u64)
             ..((epoch as u64) * constants::NUMBER_OF_SLOTS_PER_EPOCH as u64 + 16);
-        let stream: Vec<(bool, Option<HashMap<(i64, String), Vec<bool>>>)> =
-            join_parallel(range.into_iter().map(|slot| async move {
+        let slot_stream_1: Vec<(bool, Option<HashMap<(i64, String), Vec<bool>>>)> =
+            join_parallel(slot_range_1.into_iter().map(|slot| async move {
                 util_functions::find_committee_attestations_bits_mapping(epoch.clone(), slot as i64)
                     .await
             }))
             .await;
 
-        for attestation_in_slot in &stream {
+        slot_stream_1.iter().for_each(|attestation_in_slot| {
             if let Some(val) = &attestation_in_slot.1 {
                 committee_attestation_bits_for_epoch_mapping.extend(val.to_owned());
             }
-        }
+        });
 
+        //This sleep is here because the QuickNode free endpoint only allows 20 requests per second and there are 32 slots
         sleep(Duration::from_secs(1));
 
-        let range2 = ((epoch as u64) * constants::NUMBER_OF_SLOTS_PER_EPOCH as u64 + 16)
+        let slot_range_2 = ((epoch as u64) * constants::NUMBER_OF_SLOTS_PER_EPOCH as u64 + 16)
             ..((epoch as u64 + 1) * constants::NUMBER_OF_SLOTS_PER_EPOCH as u64);
-        let stream2: Vec<(bool, Option<HashMap<(i64, String), Vec<bool>>>)> =
-            join_parallel(range2.into_iter().map(|slot| async move {
+        let slot_stream_2: Vec<(bool, Option<HashMap<(i64, String), Vec<bool>>>)> =
+            join_parallel(slot_range_2.into_iter().map(|slot| async move {
                 util_functions::find_committee_attestations_bits_mapping(epoch.clone(), slot as i64)
                     .await
             }))
             .await;
 
-        for attestation_in_slot in &stream2 {
+        slot_stream_2.iter().for_each(|attestation_in_slot| {
             if let Some(val) = &attestation_in_slot.1 {
                 committee_attestation_bits_for_epoch_mapping.extend(val.to_owned());
             }
-        }
+        });
 
         sleep(Duration::from_secs(1));
         if committee_attestation_bits_for_epoch_mapping.len() > 0 {

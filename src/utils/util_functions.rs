@@ -297,7 +297,7 @@ mod tests {
         let validators_in_committee = committee_validator_list
             .get(&(slot, committee_number.into()))
             .unwrap();
-        let attestations_in_commitee_length = match attestation_bits_for_slot.1 {
+        let attestations_in_committee_length = match attestation_bits_for_slot.1 {
             Some(val) => val.get(&(slot, committee_number.into())).unwrap().len(),
             None => {
                 panic!("test failed got None value");
@@ -305,7 +305,7 @@ mod tests {
         };
         assert_eq!(
             validators_in_committee.len(),
-            attestations_in_commitee_length
+            attestations_in_committee_length
         );
     }
 

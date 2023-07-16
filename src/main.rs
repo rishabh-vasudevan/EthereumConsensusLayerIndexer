@@ -8,7 +8,7 @@ type Database = sqlx::PgPool;
 #[shuttle_runtime::main]
 async fn axum(
     #[shuttle_shared_db::Postgres(
-        local_uri = "postgres://postgres:password@localhost:5432/postgres"
+        local_uri = "postgres://postgres:password@localhost:5432/database"
     )]
     pool: Database,
 ) -> shuttle_axum::ShuttleAxum {

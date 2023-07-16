@@ -23,3 +23,8 @@ An indexer that indexes the attestations of validators of the last 5 epochs
 ## To Run the Unit Tests
 
 * You can run the `cargo test` command
+
+## Possible Improvements for Future
+
+* If I had multiple endpoints that I could query. Then I could run queries for all slots in all epochs concurrently (since the free endpoint only allows 20 requests per second).
+* We could you cache (something like Redis), To store the network participation rate, get all unique data(which gets all the current data in the Database), etc. endpoints. This would drastically improve the response speed, As it would eliminate database calls.
