@@ -133,10 +133,17 @@ pub async fn find_committee_attestations_bits_mapping(
                             .parse::<i64>()
                             .unwrap();
                         if committee_slot >= (epoch * constants::NUMBER_OF_SLOTS_PER_EPOCH) {
-                            committee_attestations_bits_mapping.insert(
-                                (committee_slot, committee_index.to_string()),
-                                aggregation_array,
-                            );
+                            if let Some(attestation_bits_existing) = committee_attestations_bits_mapping.get_mut(&(committee_slot, committee_index.to_string())){
+                                for attestation_index in 0..aggregation_array.len() {
+                                        attestation_bits_existing[attestation_index] = attestation_bits_existing[attestation_index] | aggregation_array[attestation_index];
+                                    }
+                            }
+                             else {
+                                committee_attestations_bits_mapping.insert(
+                                    (committee_slot, committee_index.to_string()),
+                                    aggregation_array,
+                                );
+                            }
                         }
                     }
                 }
